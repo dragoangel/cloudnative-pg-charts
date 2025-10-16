@@ -5,8 +5,6 @@ cluster:
   storage:
     size: 256Mi
     storageClass: standard
-backups:
-  enabled: false
 poolers:
   - name: rw
     type: rw

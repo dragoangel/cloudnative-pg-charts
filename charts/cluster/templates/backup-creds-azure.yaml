@@ -1,0 +1,11 @@
+{{- if and (eq .Values.backups.objectStorage.provider "azure") (empty .Values.backups.existingSecret.name) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ printf "%s-backup-creds-azure" (include "cluster.fullname" .) }}
+data:
+  AZURE_CONNECTION_STRING: {{ .Values.backups.objectStorage.providerSettings.azure.connectionString | b64enc | quote }}
+  AZURE_STORAGE_ACCOUNT: {{ .Values.backups.objectStorage.providerSettings.azure.storageAccount | b64enc | quote }}
+  AZURE_STORAGE_KEY: {{ .Values.backups.objectStorage.providerSettings.azure.storageKey | b64enc | quote }}
+  AZURE_STORAGE_SAS_TOKEN: {{ .Values.backups.objectStorage.providerSettings.azure.storageSasToken | b64enc | quote }}
+{{- end }}

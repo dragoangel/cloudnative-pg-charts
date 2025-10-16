@@ -1,0 +1,68 @@
+{{- include "cluster.databases.validate" . }}
+{{- range .Values.databases }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ include "cluster.fullname" $ }}-{{ .name }}
+  labels: {{ include "cluster.labels" $ | nindent 4 }}
+  annotations: {{ include "cluster.annotations" $ | nindent 4 }}
+spec:
+  cluster:
+    name: {{ include "cluster.fullname" $ }}
+  name: {{ .name }}
+  owner: {{ .owner | default "app" }}
+  {{- with .ensure }}
+  ensure: {{ . }}
+  {{- end }}
+  {{- with .template }}
+  template: {{ . }}
+  {{- end }}
+  {{- with .encoding }}
+  encoding: {{ . }}
+  {{- end }}
+  {{- with .locale }}
+  locale: {{ . }}
+  {{- end }}
+  {{- with .localeProvider }}
+  localeProvider: {{ . }}
+  {{- end }}
+  {{- with .localeCollate }}
+  localeCollate: {{ . }}
+  {{- end }}
+  {{- with .localeCType }}
+  localeCType: {{ . }}
+  {{- end }}
+  {{- with .icuLocale }}
+  icuLocale: {{ . }}
+  {{- end }}
+  {{- with .icuRules }}
+  icuRules: {{ . }}
+  {{- end }}
+  {{- with .builtinLocale }}
+  builtinLocale: {{ . }}
+  {{- end }}
+  {{- with .isTemplate }}
+  isTemplate: {{ . }}
+  {{- end }}
+  {{- with .allowConnections }}
+  allowConnections: {{ . }}
+  {{- end }}
+  {{- with .connectionLimit }}
+  connectionLimit: {{ . }}
+  {{- end }}
+  {{- with .tablespace }}
+  tablespace: {{ . }}
+  {{- end }}
+  {{- with .databaseReclaimPolicy }}
+  databaseReclaimPolicy: {{ . }}
+  {{- end }}
+  {{- with .schemas }}
+  schemas:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .extensions }}
+  extensions:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

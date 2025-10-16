@@ -7,13 +7,15 @@ metadata:
 spec:
   images:
     - major: 12
-      image: timescale/timescaledb-ha:pg12-ts{{ .Values.version.timescaledb }}
+      image: timescale/timescaledb-ha:pg12-ts2.11
     - major: 13
-      image: timescale/timescaledb-ha:pg13-ts{{ .Values.version.timescaledb }}
+      image: timescale/timescaledb-ha:pg13-ts2.15
     - major: 14
-      image: timescale/timescaledb-ha:pg14-ts{{ .Values.version.timescaledb }}
+      image: timescale/timescaledb-ha:pg14-ts2.19
     - major: 15
       image: timescale/timescaledb-ha:pg15-ts{{ .Values.version.timescaledb }}
     - major: 16
       image: timescale/timescaledb-ha:pg16-ts{{ .Values.version.timescaledb }}
+    - major: 17
+      image: timescale/timescaledb-ha:pg17-ts{{ .Values.version.timescaledb }}
 {{ end }}

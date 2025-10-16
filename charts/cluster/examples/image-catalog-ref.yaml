@@ -8,5 +8,3 @@ cluster:
   imageCatalogRef:
     kind: ImageCatalog
     name: my-image-catalog
-backups:
-  enabled: false

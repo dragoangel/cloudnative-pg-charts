@@ -49,6 +49,11 @@ spec:
     name: supersecret-secret
   enableSuperuserAccess: true
   enablePDB: false
+  replicationSlots:
+    highAvailability:
+      enabled: false
+      slotPrefix: _cnpg_cust_
+      updateInterval: "60"
   certificates:
     serverCASecret: ca-secret
     serverTLSSecret: tls-secret

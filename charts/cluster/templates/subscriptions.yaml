@@ -1,0 +1,22 @@
+{{- range .Values.subscriptions }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Subscription
+metadata:
+  name: {{ include "cluster.fullname" $ }}-{{ include "cluster.subscription.hash" . }}
+spec:
+  cluster:
+    name: {{ include "cluster.fullname" $ }}
+  dbname: {{ .dbname | default "app" }}
+  name: {{ .name | default "subscriber" }}
+  externalClusterName: {{ .externalClusterName | default "pgBasebackupRecoveryCluster" }}
+  publicationName: {{ .publicationName | default "publisher" }}
+  {{- with .publicationDBName }}
+  publicationDBName: {{ . }}
+  {{- end }}
+  {{- with .parameters }}
+  parameters:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  subscriptionReclaimPolicy: {{ .reclaimPolicy | default "delete" }}
+{{- end }}

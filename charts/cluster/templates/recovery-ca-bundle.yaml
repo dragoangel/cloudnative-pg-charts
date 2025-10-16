@@ -1,0 +1,8 @@
+{{- if .Values.recovery.methodSettings.objectStorage.endpointCA.create }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ printf "%s-recovery-ca-bundle" (include "cluster.fullname" .) }}
+data:
+  {{ .Values.recovery.methodSettings.objectStorage.endpointCA.key }}: {{ .Values.recovery.methodSettings.objectStorage.endpointCA.value }}
+{{- end }}

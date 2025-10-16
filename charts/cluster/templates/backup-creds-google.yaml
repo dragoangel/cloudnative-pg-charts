@@ -1,0 +1,8 @@
+{{- if and (eq .Values.backups.objectStorage.provider "google") (empty .Values.backups.existingSecret.name) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ printf "%s-backup-creds-google" (include "cluster.fullname" .) }}
+data:
+  APPLICATION_CREDENTIALS: {{ .Values.backups.objectStorage.providerSettings.google.applicationCredentials | b64enc | quote }}
+{{- end }}

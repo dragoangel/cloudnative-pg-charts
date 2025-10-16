@@ -1,23 +1,28 @@
 {{- define "cluster.backup" -}}
-{{- if .Values.backups.enabled }}
+{{- $volumeSnapshotEnabled := eq (include "cluster.backups.volumeSnapshot.enabled" .) "true" -}}
+{{- $barmanBuildinEnabled := and (eq (include "cluster.barman.integrationType" .) "buildin") (eq (include "cluster.backups.objectStorage.enabled" .) "true") -}}
+{{- if or $volumeSnapshotEnabled $barmanBuildinEnabled }}
 backup:
-  target: "prefer-standby"
-  retentionPolicy: {{ .Values.backups.retentionPolicy }}
+  {{- if $barmanBuildinEnabled }}
   barmanObjectStore:
-    wal:
-      compression: {{ .Values.backups.wal.compression }}
-      {{- if .Values.backups.wal.encryption }}
-      encryption: {{ .Values.backups.wal.encryption }}
-      {{- end }}
-      maxParallel: {{ .Values.backups.wal.maxParallel }}
-    data:
-      compression: {{ .Values.backups.data.compression }}
-      {{- if .Values.backups.data.encryption }}
-      encryption: {{ .Values.backups.data.encryption }}
-      {{- end }}
-      jobs: {{ .Values.backups.data.jobs }}
-
-    {{- $d := dict "chartFullname" (include "cluster.fullname" .) "scope" .Values.backups "secretPrefix" "backup" }}
-    {{- include "cluster.barmanObjectStoreConfig" $d | nindent 2 }}
+    {{- $d := dict "chartFullname" (include "cluster.fullname" .) "scope" .Values.backups.objectStorage "secretPrefix" "backup" "existingSecret" .Values.backups.existingSecret }}
+    {{- include "cluster.barmanObjectStoreConfig" $d | indent 4 }}
+  {{- if not (empty .Values.backups.objectStorage.retentionPolicy) }}
+  retentionPolicy: {{ .Values.backups.objectStorage.retentionPolicy }}
+  {{- end }}
+  {{- end }}
+  {{- if $volumeSnapshotEnabled }}
+  volumeSnapshot:
+    className: {{ .Values.backups.volumeSnapshot.className }}
+    {{- if and .Values.cluster.walStorage.enabled (not (empty .Values.backups.volumeSnapshot.walClassName)) }}
+    walClassName: {{ .Values.backups.volumeSnapshot.walClassName }}
+    {{- end }}
+    online: {{ .Values.backups.volumeSnapshot.online }}
+    onlineConfiguration:
+      immediateCheckpoint: {{ .Values.backups.volumeSnapshot.onlineConfiguration.immediateCheckpoint }}
+      waitForArchive: {{ .Values.backups.volumeSnapshot.onlineConfiguration.waitForArchive }}
+    snapshotOwnerReference: {{ .Values.backups.volumeSnapshot.snapshotOwnerReference }}
+  target: {{ .Values.backups.volumeSnapshot.target }}
+  {{- end }}
 {{- end }}
 {{- end }}

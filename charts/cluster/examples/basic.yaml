@@ -4,5 +4,3 @@ version:
   postgresql: "16"
 cluster:
   instances: 1
-backups:
-  enabled: false

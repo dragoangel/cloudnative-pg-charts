@@ -1,0 +1,19 @@
+{{- if and (eq (include "cluster.barman.integrationType" .) "plugin") (eq (include "cluster.backups.objectStorage.enabled" .) "true") }}
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ include "cluster.objectStore.backup.name" . }}
+  labels:
+    {{- include "cluster.labels" . | nindent 4 }}
+spec:
+  configuration:
+    {{- $d := dict "chartFullname" (include "cluster.fullname" .) "scope" .Values.backups.objectStorage "secretPrefix" "backup" "existingSecret" .Values.backups.existingSecret }}
+    {{- include "cluster.barmanObjectStoreConfig" $d | indent 4 }}
+  {{- if not (empty .Values.backups.objectStorage.retentionPolicy) }}
+  retentionPolicy: {{ .Values.backups.objectStorage.retentionPolicy }}
+  {{- end }}
+  {{- with .Values.backups.objectStorage.instanceSidecarConfiguration }}
+  instanceSidecarConfiguration:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

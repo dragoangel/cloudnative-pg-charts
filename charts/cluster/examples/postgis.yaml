@@ -5,5 +5,3 @@ version:
   postgis: "3.4"
 cluster:
   instances: 1
-backups:
-  enabled: false

@@ -37,8 +37,6 @@ cluster:
     foo: bar
   annotations:
     foo: bar
-backups:
-  enabled: false
 poolers:
   - name: rw
     type: rw

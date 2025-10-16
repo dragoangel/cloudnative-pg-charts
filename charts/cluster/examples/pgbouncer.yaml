@@ -8,9 +8,6 @@ cluster:
     podMonitor:
       enabled: true
 
-backups:
-  enabled: false
-
 poolers:
   - name: rw
     type: rw

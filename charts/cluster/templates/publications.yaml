@@ -1,0 +1,24 @@
+{{- range .Values.publications }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Publication
+metadata:
+  name: {{ include "cluster.fullname" $ }}-{{ .name | default "publisher" }}
+spec:
+  cluster:
+    name: {{ include "cluster.fullname" $ }}
+  dbname: {{ .dbname | default "app" }}
+  name: {{ .name | default "publisher" }}
+  {{- $target := .target | default (dict) }}
+  target:
+    allTables: {{ default true $target.allTables }}
+    {{- with $target.objects }}
+    objects:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- with .parameters }}
+  parameters:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  publicationReclaimPolicy: {{ .reclaimPolicy | default "delete" }}
+{{- end }}

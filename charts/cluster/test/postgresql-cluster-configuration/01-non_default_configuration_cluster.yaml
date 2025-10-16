@@ -79,6 +79,11 @@ cluster:
               test-annotation: "true"
           spec:
             type: LoadBalancer
+  replicationSlots:
+    highAvailability:
+      enabled: false
+      slotPrefix: _cnpg_cust_
+      updateInterval: "60"
   roles:
      - name: dante
        ensure: present
@@ -98,7 +103,7 @@ cluster:
           key: 'data'
         searchAttribute: 'uid'
     parameters:
-      max_connections: "42"
+    max_connections: "42"
     pg_hba:
       - host all 1.2.3.4/32 trust
     pg_ident:
@@ -127,6 +132,3 @@ cluster:
     metadata:
       annotations:
         my-annotation: my-service-account
-
-backups:
-  enabled: false

@@ -58,9 +58,10 @@ Cluster Configuration
 
 ### Database types
 
-Currently the chart supports two database types. These are configured via the `type` parameter. These are:
+Currently the chart supports the following database types via the `type` parameter:
 * `postgresql` - A standard PostgreSQL database.
 * `postgis` - A PostgreSQL database with the PostGIS extension installed.
+* `timescaledb` - PostgreSQL with TimescaleDB extension; you can use an ImageCatalog (recommended) or provide a custom `cluster.imageName`.
 
 Depending on the type the chart will use a different Docker image and fill in some initial setup, like extension installation.
 
@@ -75,10 +76,10 @@ The chart has three modes of operation. These are configured via the `mode` para
 
 CNPG implements disaster recovery via [Barman](https://pgbarman.org/). The following section configures the barman object
 store where backups will be stored. Barman performs backups of the cluster filesystem base backup and WALs. Both are
-stored in the specified location. The backup provider is configured via the `backups.provider` parameter. The following
-providers are supported:
+stored in the specified location. The backup provider is configured via the `backups.objectStorage.provider` parameter.
+The following providers are supported:
 
-* S3 or S3-compatible stores, like MinIO
+* S3 or S3-compatible stores, like MinIO or Ceph Rados
 * Microsoft Azure Blob Storage
 * Google Cloud Storage
 
@@ -94,13 +95,13 @@ backups:
 ```
 
 Each backup adapter takes it's own set of parameters, listed in the [Configuration options](#Configuration-options) section
-below. Refer to the table for the full list of parameters and place the configuration under the appropriate key: `backup.s3`,
-`backup.azure`, or `backup.google`.
+below. Refer to the table for the full list of parameters and place the configuration under the appropriate key:
+`backups.objectStorage.providerSettings.s3`, `backups.objectStorage.providerSettings.azure` or `backups.objectStorage.providerSettings.google`.
 
 Recovery
 --------
 
-There is a separate document outlining the recovery procedure here: **[Recovery](docs/Recovery.md)**
+There is a separate document outlining the recovery procedure here: **[Recovery](docs/recovery.md)**
 
 Examples
 --------
@@ -112,43 +113,52 @@ refer to  the [CloudNativePG Documentation](https://cloudnative-pg.io/documentat
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| backups.azure.connectionString | string | `""` |  |
-| backups.azure.containerName | string | `""` |  |
-| backups.azure.inheritFromAzureAD | bool | `false` |  |
-| backups.azure.path | string | `"/"` |  |
-| backups.azure.serviceName | string | `"blob"` |  |
-| backups.azure.storageAccount | string | `""` |  |
-| backups.azure.storageKey | string | `""` |  |
-| backups.azure.storageSasToken | string | `""` |  |
-| backups.data.compression | string | `"gzip"` | Data compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`. |
-| backups.data.encryption | string | `"AES256"` | Whether to instruct the storage provider to encrypt data files. One of `` (use the storage container default), `AES256` or `aws:kms`. |
-| backups.data.jobs | int | `2` | Number of data files to be archived or restored in parallel. |
-| backups.destinationPath | string | `""` | Overrides the provider specific default path. Defaults to: S3: s3://<bucket><path> Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path> Google: gs://<bucket><path> |
-| backups.enabled | bool | `false` | You need to configure backups manually, so backups are disabled by default. |
-| backups.endpointCA | object | `{"create":false,"key":"","name":"","value":""}` | Specifies a CA bundle to validate a privately signed certificate. |
-| backups.endpointCA.create | bool | `false` | Creates a secret with the given value if true, otherwise uses an existing secret. |
-| backups.endpointURL | string | `""` | Overrides the provider specific default endpoint. Defaults to: S3: https://s3.<region>.amazonaws.com" |
-| backups.google.applicationCredentials | string | `""` |  |
-| backups.google.bucket | string | `""` |  |
-| backups.google.gkeEnvironment | bool | `false` |  |
-| backups.google.path | string | `"/"` |  |
-| backups.provider | string | `"s3"` | One of `s3`, `azure` or `google` |
-| backups.retentionPolicy | string | `"30d"` | Retention policy for backups |
-| backups.s3.accessKey | string | `""` |  |
-| backups.s3.bucket | string | `""` |  |
-| backups.s3.inheritFromIAMRole | bool | `false` | Use the role based authentication without providing explicitly the keys |
-| backups.s3.path | string | `"/"` |  |
-| backups.s3.region | string | `""` |  |
-| backups.s3.secretKey | string | `""` |  |
-| backups.scheduledBackups[0].backupOwnerReference | string | `"self"` | Backup owner reference |
-| backups.scheduledBackups[0].method | string | `"barmanObjectStore"` | Backup method, can be `barmanObjectStore` (default) or `volumeSnapshot` |
-| backups.scheduledBackups[0].name | string | `"daily-backup"` | Scheduled backup name |
-| backups.scheduledBackups[0].schedule | string | `"0 0 0 * * *"` | Schedule in cron format |
-| backups.secret.create | bool | `true` | Whether to create a secret for the backup credentials |
-| backups.secret.name | string | `""` | Name of the backup credentials secret |
-| backups.wal.compression | string | `"gzip"` | WAL compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`. |
-| backups.wal.encryption | string | `"AES256"` | Whether to instruct the storage provider to encrypt WAL files. One of `` (use the storage container default), `AES256` or `aws:kms`. |
-| backups.wal.maxParallel | int | `1` | Number of WAL files to be archived or restored in parallel. |
+| backups.existingSecret.name | string | `""` | If the secret name is set, helm chart will create one which needed. Existing secret should contains all required veriables for chosen provider. |
+| backups.objectStorage.data.compression | string | `"gzip"` | Data compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`. |
+| backups.objectStorage.data.encryption | string | `""` | Whether to instruct the storage provider to encrypt data files. One of `` (use the storage container default), `AES256` or `aws:kms`. |
+| backups.objectStorage.data.jobs | int | `2` | Number of data files to be archived or restored in parallel. |
+| backups.objectStorage.destinationPath | string | `""` | Overrides the provider specific default path. Defaults to: S3: s3://<bucket><path> Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path> Google: gs://<bucket><path> |
+| backups.objectStorage.endpointCA.create | bool | `false` | Specifies a CA bundle to validate a privately signed certificate. Creates a secret with the given value if true, otherwise uses an existing secret. |
+| backups.objectStorage.endpointCA.key | string | `"ca-bundle.crt"` |  |
+| backups.objectStorage.endpointCA.name | string | `""` | Name of existing secret containing CA bundle. |
+| backups.objectStorage.endpointCA.value | string | `""` |  |
+| backups.objectStorage.endpointURL | string | `""` | Overrides the provider specific default endpoint. Defaults to: S3: https://s3.<region>.amazonaws.com" Leave empty if using the default S3 endpoint |
+| backups.objectStorage.historyTags | object | `{}` | Tags to be added to archived history files in cloud storage. |
+| backups.objectStorage.instanceSidecarConfiguration | object | `{}` | Optional sidecar configuration for the ObjectStore instance pods |
+| backups.objectStorage.name | string | `""` | Optional name for the generated ObjectStore used for backups; defaults to "<fullname>-backup-objectstore" |
+| backups.objectStorage.provider | string | `""` | Enables objectStorage provider. One of providers from `providerSettings`, empty string - disables objectStorage backups. https://cloudnative-pg.io/documentation/current/appendixes/object_stores/#appendix-a-common-object-stores-for-backups |
+| backups.objectStorage.providerSettings.azure.connectionString | string | `""` | Configures `AZURE_CONNECTION_STRING` in secret |
+| backups.objectStorage.providerSettings.azure.containerName | string | `""` |  |
+| backups.objectStorage.providerSettings.azure.inheritFromAzureAD | bool | `false` |  |
+| backups.objectStorage.providerSettings.azure.path | string | `"/"` |  |
+| backups.objectStorage.providerSettings.azure.serviceName | string | `"blob"` |  |
+| backups.objectStorage.providerSettings.azure.storageAccount | string | `""` | Configures `AZURE_STORAGE_ACCOUNT` in secret |
+| backups.objectStorage.providerSettings.azure.storageKey | string | `""` | Configures `AZURE_STORAGE_KEY` in secret |
+| backups.objectStorage.providerSettings.azure.storageSasToken | string | `""` | Configures `AZURE_STORAGE_SAS_TOKEN` in secret |
+| backups.objectStorage.providerSettings.google.applicationCredentials | string | `""` | Configures `APPLICATION_CREDENTIALS` in secret |
+| backups.objectStorage.providerSettings.google.bucket | string | `""` |  |
+| backups.objectStorage.providerSettings.google.gkeEnvironment | bool | `false` |  |
+| backups.objectStorage.providerSettings.google.path | string | `"/"` |  |
+| backups.objectStorage.providerSettings.s3.accessKey | string | `""` | Configures `ACCESS_KEY_ID` in secret |
+| backups.objectStorage.providerSettings.s3.bucket | string | `""` |  |
+| backups.objectStorage.providerSettings.s3.inheritFromIAMRole | bool | `false` |  |
+| backups.objectStorage.providerSettings.s3.path | string | `"/"` |  |
+| backups.objectStorage.providerSettings.s3.region | string | `""` |  |
+| backups.objectStorage.providerSettings.s3.secretKey | string | `""` | Configures `ACCESS_SECRET_KEY` in secret |
+| backups.objectStorage.retentionPolicy | string | `""` | Retention policy for backups, duration format, f.e. 7d, 24h. |
+| backups.objectStorage.tags | object | `{}` | Tags to be added to archived WAL files in cloud storage. |
+| backups.objectStorage.wal.compression | string | `"gzip"` | WAL compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`. |
+| backups.objectStorage.wal.encryption | string | `""` | Whether to instruct the storage provider to encrypt WAL files. One of `` (use the storage container default), `AES256` or `aws:kms`. |
+| backups.objectStorage.wal.maxParallel | int | `1` | Number of WAL files to be archived in parallel. |
+| backups.objectStorage.walArchiverEnabled | bool | `false` | Enable WAL archiver |
+| backups.volumeSnapshot.className | string | `""` | To enable volumeSnapshot configure className and add scheduledBackup with method `volumeSnapshot` https://cloudnative-pg.io/documentation/current/backup_volumesnapshot/#how-to-configure-volume-snapshot-backups |
+| backups.volumeSnapshot.online | bool | `true` | Hot and cold backups https://cloudnative-pg.io/documentation/current/backup_volumesnapshot/#hot-and-cold-backups |
+| backups.volumeSnapshot.onlineConfiguration.immediateCheckpoint | bool | `true` |  |
+| backups.volumeSnapshot.onlineConfiguration.waitForArchive | bool | `true` |  |
+| backups.volumeSnapshot.snapshotOwnerReference | string | `"backup"` | Persistence of volume snapshot objects https://cloudnative-pg.io/documentation/current/backup_volumesnapshot/#persistence-of-volume-snapshot-objects One of `none`, `backup`, `cluster`, |
+| backups.volumeSnapshot.target | string | `"prefer-standby"` | Backup target configuration. One of `prefer-standby`, `primary`. https://cloudnative-pg.io/documentation/current/backup/#backup-from-a-standby |
+| backups.volumeSnapshot.walClassName | string | `""` | WAL snapshots class name, if empty - defaults to `className` |
+| barman.forceUseOf | string | `""` | Force using a specific Barman integration type. When empty, chart will automatically: - use builtin barmanObjectStore (in Cluster spec) on Kubernetes < 1.29 - use the Barman Cloud Plugin (ObjectStore CR) on Kubernetes >= 1.29 Set to "buildin" or "plugin" to force a specific integration regardless of Kubernetes version. |
 | cluster.additionalLabels | object | `{}` |  |
 | cluster.affinity | object | `{"topologyKey":"topology.kubernetes.io/zone"}` | Affinity/Anti-affinity rules for Pods. See: https://cloudnative-pg.io/documentation/current/cloudnative-pg.v1/#postgresql-cnpg-io-v1-AffinityConfiguration |
 | cluster.annotations | object | `{}` |  |
@@ -184,6 +194,7 @@ refer to  the [CloudNativePG Documentation](https://cloudnative-pg.io/documentat
 | cluster.primaryUpdateMethod | string | `"switchover"` | Method to follow to upgrade the primary server during a rolling update procedure, after all replicas have been successfully updated. It can be switchover (default) or restart. |
 | cluster.primaryUpdateStrategy | string | `"unsupervised"` | Strategy to follow to upgrade the primary server during a rolling update procedure, after all replicas have been successfully updated: it can be automated (unsupervised - default) or manual (supervised) |
 | cluster.priorityClassName | string | `""` |  |
+| cluster.replicationSlots | object | `{}` | This feature automatically manages physical replication slots for each hot standby replica in the High Availability cluster, both in the primary and the standby. See: https://cloudnative-pg.io/documentation/current/replication/#replication-slots-for-high-availability |
 | cluster.resources | object | `{}` | Resources requirements of every generated Pod. Please refer to https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/ for more information. We strongly advise you use the same setting for limits and requests so that your cluster pods are given a Guaranteed QoS. See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/ |
 | cluster.roles | list | `[]` | This feature enables declarative management of existing roles, as well as the creation of new roles if they are not already present in the database. See: https://cloudnative-pg.io/documentation/current/declarative_role_management/ |
 | cluster.serviceAccountTemplate | object | `{}` | Configure the metadata of the generated service account |
@@ -194,88 +205,81 @@ refer to  the [CloudNativePG Documentation](https://cloudnative-pg.io/documentat
 | cluster.walStorage.enabled | bool | `false` |  |
 | cluster.walStorage.size | string | `"1Gi"` |  |
 | cluster.walStorage.storageClass | string | `""` |  |
+| databases | list | `[]` | Declarative PostgreSQL databases managed via Database CRs https://cloudnative-pg.io/documentation/current/declarative_database_management/ |
+| externalClusters | list | `[]` | List of external clusters definitions. https://cloudnative-pg.io/documentation/current/replica_cluster/#defining-an-external-cluster |
 | fullnameOverride | string | `""` | Override the full name of the chart |
+| imageCatalog | object | `{"create":true,"images":[]}` | ImageCatalog definitions for referencing in cluster.imageCatalogRef https://cloudnative-pg.io/documentation/current/image_catalog/ |
 | imageCatalog.create | bool | `true` | Whether to provision an image catalog. If imageCatalog.images is empty this option will be ignored. |
 | imageCatalog.images | list | `[]` | List of images to be provisioned in an image catalog. |
-| mode | string | `"standalone"` | Cluster mode of operation. Available modes: * `standalone` - default mode. Creates new or updates an existing CNPG cluster. * `replica` - Creates a replica cluster from an existing CNPG cluster. # TODO * `recovery` - Same as standalone but creates a cluster from a backup, object store or via pg_basebackup. |
+| import.type | string | `""` | Choose one of types from `typeSettings`, https://cloudnative-pg.io/documentation/current/database_import/ All types require: configure `recovery.method` to `pgBasebackup` and `recovery.methodSettings` accordingly Please be aware off https://cloudnative-pg.io/documentation/current/database_import/#import-optimizations |
+| import.typeSettings.microservice.database | string | `""` | Database name to import |
+| import.typeSettings.microservice.owner | string | `""` | Configure database owner, defaults to the database name |
+| import.typeSettings.microservice.ownerSecret | string | `""` | Secret containing the initial credentials for the owner of the user database. If empty a new secret will be created from scratch |
+| import.typeSettings.microservice.postImportApplicationSQL | list | `[]` | Execute defined SQL queries as a superuser in the application database after import, optional |
+| import.typeSettings.monolith.databases | list | `[]` | List of databases that is required by the imported. Wildcard allow to import all databases. |
+| import.typeSettings.monolith.roles | list | `[]` | List of role that is required by the imported databases. Wildcard allow to import all roles. Notes: 1. postgres, streaming_replica & cnp_pooler_pgbouncer roles will not be imported from origin 2. the SUPERUSER option is removed from any imported role |
+| mode | string | `"standalone"` | Cluster mode of operation. Available modes: * `standalone` - default mode. * `recovery` - creates a cluster from a backup (cnpg CR), objectStore, volumeSnapshot or pgBasebackup. * `replica` - creates a replica cluster from objectStore or pgBasebackup. Requires to define recovery settings. * `import` - creates a cluster by utilizing `pg_dump -Fc` via pgBasebackup connection, which allows to migrate even from very old versions of PostgreSQL. Requires to define recovery settings. |
 | nameOverride | string | `""` | Override the name of the chart |
 | namespaceOverride | string | `""` | Override the namespace of the chart |
-| poolers | list | `[]` | List of PgBouncer poolers |
-| recovery.azure.connectionString | string | `""` |  |
-| recovery.azure.containerName | string | `""` |  |
-| recovery.azure.inheritFromAzureAD | bool | `false` |  |
-| recovery.azure.path | string | `"/"` |  |
-| recovery.azure.serviceName | string | `"blob"` |  |
-| recovery.azure.storageAccount | string | `""` |  |
-| recovery.azure.storageKey | string | `""` |  |
-| recovery.azure.storageSasToken | string | `""` |  |
-| recovery.backupName | string | `""` | Backup Recovery Method |
-| recovery.clusterName | string | `""` | The original cluster name when used in backups. Also known as serverName. |
-| recovery.database | string | `"app"` | Name of the database used by the application. Default: `app`. |
-| recovery.destinationPath | string | `""` | Overrides the provider specific default path. Defaults to: S3: s3://<bucket><path> Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path> Google: gs://<bucket><path> |
-| recovery.endpointCA | object | `{"create":false,"key":"","name":"","value":""}` | Specifies a CA bundle to validate a privately signed certificate. |
-| recovery.endpointCA.create | bool | `false` | Creates a secret with the given value if true, otherwise uses an existing secret. |
-| recovery.endpointURL | string | `""` | Overrides the provider specific default endpoint. Defaults to: S3: https://s3.<region>.amazonaws.com" Leave empty if using the default S3 endpoint |
-| recovery.google.applicationCredentials | string | `""` |  |
-| recovery.google.bucket | string | `""` |  |
-| recovery.google.gkeEnvironment | bool | `false` |  |
-| recovery.google.path | string | `"/"` |  |
-| recovery.import.databases | list | `[]` | Databases to import |
-| recovery.import.pgDumpExtraOptions | list | `[]` | List of custom options to pass to the `pg_dump` command. IMPORTANT: Use these options with caution and at your own risk, as the operator does not validate their content. Be aware that certain options may conflict with the operator's intended functionality or design. |
-| recovery.import.pgRestoreExtraOptions | list | `[]` | List of custom options to pass to the `pg_restore` command. IMPORTANT: Use these options with caution and at your own risk, as the operator does not validate their content. Be aware that certain options may conflict with the operator's intended functionality or design. |
-| recovery.import.postImportApplicationSQL | list | `[]` | List of SQL queries to be executed as a superuser in the application database right after is imported. To be used with extreme care. Only available in microservice type. |
-| recovery.import.roles | list | `[]` | Roles to import |
-| recovery.import.schemaOnly | bool | `false` | When set to true, only the pre-data and post-data sections of pg_restore are invoked, avoiding data import. |
-| recovery.import.source.database | string | `""` |  |
-| recovery.import.source.host | string | `""` |  |
-| recovery.import.source.passwordSecret.create | bool | `false` | Whether to create a secret for the password |
-| recovery.import.source.passwordSecret.key | string | `"password"` | The key in the secret containing the password |
-| recovery.import.source.passwordSecret.name | string | `""` | Name of the secret containing the password |
-| recovery.import.source.passwordSecret.value | string | `""` | The password value to use when creating the secret |
-| recovery.import.source.port | int | `5432` |  |
-| recovery.import.source.sslCertSecret.key | string | `""` |  |
-| recovery.import.source.sslCertSecret.name | string | `""` |  |
-| recovery.import.source.sslKeySecret.key | string | `""` |  |
-| recovery.import.source.sslKeySecret.name | string | `""` |  |
-| recovery.import.source.sslMode | string | `"verify-full"` |  |
-| recovery.import.source.sslRootCertSecret.key | string | `""` |  |
-| recovery.import.source.sslRootCertSecret.name | string | `""` |  |
-| recovery.import.source.username | string | `""` |  |
-| recovery.import.type | string | `"microservice"` | One of `microservice` or `monolith.` See: https://cloudnative-pg.io/documentation/current/database_import/#how-it-works |
-| recovery.method | string | `"backup"` | Available recovery methods: * `backup` - Recovers a CNPG cluster from a CNPG backup (PITR supported) Needs to be on the same cluster in the same namespace. * `object_store` - Recovers a CNPG cluster from a barman object store (PITR supported). * `pg_basebackup` - Recovers a CNPG cluster viaa streaming replication protocol. Useful if you want to        migrate databases to CloudNativePG, even from outside Kubernetes. * `import` - Import one or more databases from an existing Postgres cluster. |
-| recovery.owner | string | `""` | Name of the owner of the database in the instance to be used by applications. Defaults to the value of the `database` key. |
-| recovery.pgBaseBackup.database | string | `"app"` | Name of the database used by the application. Default: `app`. |
-| recovery.pgBaseBackup.owner | string | `""` | Name of the owner of the database in the instance to be used by applications. Defaults to the value of the `database` key. |
-| recovery.pgBaseBackup.secret | string | `""` | Name of the secret containing the initial credentials for the owner of the user database. If empty a new secret will be created from scratch |
-| recovery.pgBaseBackup.source.database | string | `"app"` |  |
-| recovery.pgBaseBackup.source.host | string | `""` |  |
-| recovery.pgBaseBackup.source.passwordSecret.create | bool | `false` | Whether to create a secret for the password |
-| recovery.pgBaseBackup.source.passwordSecret.key | string | `"password"` | The key in the secret containing the password |
-| recovery.pgBaseBackup.source.passwordSecret.name | string | `""` | Name of the secret containing the password |
-| recovery.pgBaseBackup.source.passwordSecret.value | string | `""` | The password value to use when creating the secret |
-| recovery.pgBaseBackup.source.port | int | `5432` |  |
-| recovery.pgBaseBackup.source.sslCertSecret.key | string | `""` |  |
-| recovery.pgBaseBackup.source.sslCertSecret.name | string | `""` |  |
-| recovery.pgBaseBackup.source.sslKeySecret.key | string | `""` |  |
-| recovery.pgBaseBackup.source.sslKeySecret.name | string | `""` |  |
-| recovery.pgBaseBackup.source.sslMode | string | `"verify-full"` |  |
-| recovery.pgBaseBackup.source.sslRootCertSecret.key | string | `""` |  |
-| recovery.pgBaseBackup.source.sslRootCertSecret.name | string | `""` |  |
-| recovery.pgBaseBackup.source.username | string | `""` |  |
-| recovery.pitrTarget.time | string | `""` | Time in RFC3339 format |
-| recovery.provider | string | `"s3"` | One of `s3`, `azure` or `google` |
-| recovery.s3.accessKey | string | `""` |  |
-| recovery.s3.bucket | string | `""` |  |
-| recovery.s3.inheritFromIAMRole | bool | `false` | Use the role based authentication without providing explicitly the keys |
-| recovery.s3.path | string | `"/"` |  |
-| recovery.s3.region | string | `""` |  |
-| recovery.s3.secretKey | string | `""` |  |
-| recovery.secret.create | bool | `true` | Whether to create a secret for the backup credentials |
-| recovery.secret.name | string | `""` | Name of the backup credentials secret |
+| poolers | list | `[]` | List of PgBouncer poolers https://cloudnative-pg.io/documentation/current/connection_pooling/ |
+| publications | list | `[]` | Logical replication publications to create for this cluster. https://cloudnative-pg.io/documentation/current/logical_replication/#publications |
+| recovery.existingSecret.name | string | `""` | If the secret name is set, helm chart will create one which needed. Existing secret should contains all required veriables for chosen method or provider. |
+| recovery.method | string | `""` | One of methods from `methodSettings`. |
+| recovery.methodSettings.backup.name | string | `""` | Recovers a CNPG cluster from a backups.postgresql.cnpg.io custom resource (PITR supported). https://cloudnative-pg.io/documentation/current/recovery/#recovery-from-a-backup-object Needs to be on the same cluster in the same namespace. Name of the backup to recover from. |
+| recovery.methodSettings.objectStorage.clusterName | string | `""` | Recovers a CNPG cluster from a barman object store (PITR supported). https://cloudnative-pg.io/documentation/current/recovery/#recovery-from-an-object-store https://cloudnative-pg.io/documentation/current/replica_cluster/#example-of-standalone-replica-cluster-from-an-object-store The original cluster name when used in backups. Also known as serverName. |
+| recovery.methodSettings.objectStorage.destinationPath | string | `""` | Overrides the provider specific default path. Defaults to: S3: s3://<bucket><path> Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path> Google: gs://<bucket><path> |
+| recovery.methodSettings.objectStorage.endpointCA.create | bool | `false` | Specifies a CA bundle to validate a privately signed certificate. Creates a secret with the given value if true, otherwise uses an existing secret. |
+| recovery.methodSettings.objectStorage.endpointCA.key | string | `"ca-bundle.crt"` |  |
+| recovery.methodSettings.objectStorage.endpointCA.name | string | `""` | Name of existing secret containing CA bundle. |
+| recovery.methodSettings.objectStorage.endpointCA.value | string | `""` |  |
+| recovery.methodSettings.objectStorage.endpointURL | string | `""` | Overrides the provider specific default endpoint. Defaults to: S3: https://s3.<region>.amazonaws.com" Leave empty if using the default S3 endpoint |
+| recovery.methodSettings.objectStorage.instanceSidecarConfiguration | object | `{}` | Optional sidecar configuration for the ObjectStore instance pods |
+| recovery.methodSettings.objectStorage.name | string | `""` | Optional name for the generated ObjectStore used for recovery; defaults to "<fullname>-recovery-objectstore" |
+| recovery.methodSettings.objectStorage.provider | string | `""` | Enables objectStorage provider. One of providers from `providerSettings`. https://cloudnative-pg.io/documentation/current/appendixes/object_stores/#appendix-a-common-object-stores-for-backups |
+| recovery.methodSettings.objectStorage.providerSettings.azure.connectionString | string | `""` | Configures `AZURE_CONNECTION_STRING` in secret |
+| recovery.methodSettings.objectStorage.providerSettings.azure.containerName | string | `""` |  |
+| recovery.methodSettings.objectStorage.providerSettings.azure.inheritFromAzureAD | bool | `false` |  |
+| recovery.methodSettings.objectStorage.providerSettings.azure.path | string | `"/"` |  |
+| recovery.methodSettings.objectStorage.providerSettings.azure.serviceName | string | `"blob"` |  |
+| recovery.methodSettings.objectStorage.providerSettings.azure.storageAccount | string | `""` | Configures `AZURE_STORAGE_ACCOUNT` in secret |
+| recovery.methodSettings.objectStorage.providerSettings.azure.storageKey | string | `""` | Configures `AZURE_STORAGE_KEY` in secret |
+| recovery.methodSettings.objectStorage.providerSettings.azure.storageSasToken | string | `""` | Configures `AZURE_STORAGE_SAS_TOKEN` in secret |
+| recovery.methodSettings.objectStorage.providerSettings.google.applicationCredentials | string | `""` | Configures `APPLICATION_CREDENTIALS` in secret |
+| recovery.methodSettings.objectStorage.providerSettings.google.bucket | string | `""` |  |
+| recovery.methodSettings.objectStorage.providerSettings.google.gkeEnvironment | bool | `false` |  |
+| recovery.methodSettings.objectStorage.providerSettings.google.path | string | `"/"` |  |
+| recovery.methodSettings.objectStorage.providerSettings.s3.accessKey | string | `""` | Configures `ACCESS_KEY_ID` in secret |
+| recovery.methodSettings.objectStorage.providerSettings.s3.bucket | string | `""` |  |
+| recovery.methodSettings.objectStorage.providerSettings.s3.inheritFromIAMRole | bool | `false` |  |
+| recovery.methodSettings.objectStorage.providerSettings.s3.path | string | `"/"` |  |
+| recovery.methodSettings.objectStorage.providerSettings.s3.region | string | `""` |  |
+| recovery.methodSettings.objectStorage.providerSettings.s3.secretKey | string | `""` | Configures `ACCESS_SECRET_KEY` in secret |
+| recovery.methodSettings.objectStorage.wal.maxParallel | int | `1` | Number of WAL files to be restored in parallel. |
+| recovery.methodSettings.pgBasebackup.auth | string | `"password"` | Configure one of supported auth types: `password` or `tls` |
+| recovery.methodSettings.pgBasebackup.authDetails.password | string | `""` | Configures `password` in secret |
+| recovery.methodSettings.pgBasebackup.authDetails.tls.ca | string | `""` | Configures `ca.crt` in secret |
+| recovery.methodSettings.pgBasebackup.authDetails.tls.crt | string | `""` | Configures `tls.crt` in secret |
+| recovery.methodSettings.pgBasebackup.authDetails.tls.key | string | `""` | Configures `tls.key` in secret |
+| recovery.methodSettings.pgBasebackup.connectionParameters | object | `{"database":"","host":"","port":5432,"sslMode":"verify-full","user":""}` | Recovers a CNPG cluster via streaming replication protocol. https://cloudnative-pg.io/documentation/current/bootstrap/#bootstrap-from-a-live-cluster-pg_basebackup https://cloudnative-pg.io/documentation/current/replica_cluster/#example-of-standalone-replica-cluster-using-pg_basebackup |
+| recovery.methodSettings.pgBasebackup.connectionParameters.database | string | `""` | Database on source server, optional. If `pgBasebackup.database` set and this setting is empty - will use same database name. |
+| recovery.methodSettings.pgBasebackup.connectionParameters.sslMode | string | `"verify-full"` | SSL mode to use while connecting to host. Possible secure options: `verify-full`, `verify-ca`, `require` and insecure: `prefer`, `allow`, `disable`. For more details please see: https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION |
+| recovery.methodSettings.pgBasebackup.database | string | `""` | Configure application database, optional and ignored with replica https://cloudnative-pg.io/documentation/current/bootstrap/#configure-the-application-database |
+| recovery.methodSettings.pgBasebackup.owner | string | `""` | Configure database owner, defaults to the database name |
+| recovery.methodSettings.pgBasebackup.ownerSecret | string | `""` | Name of the secret containing the initial credentials for the owner of the user database. Secret must contains `username` key that match `owner` and `password` key. If empty - password will be generated randomly and saved to secret generated by Operator. |
+| recovery.methodSettings.volumeSnapshot.storageSnapshotName | string | `""` | Recovers a CNPG cluster from a volume snapshot (PITR supported). https://cloudnative-pg.io/documentation/current/recovery/#recovery-from-volumesnapshot-objects |
+| recovery.methodSettings.volumeSnapshot.walSnapshotName | string | `""` | WAL snapshot name, optional, need to be set if WAL stored on separate PVC. |
+| recovery.pitrTarget.time | string | `""` | Point in time recovery target. Work with backup, objectStorage and volumeSnapshot methods. Time should be set in RFC3339 format. |
+| replica.minApplyDelay | string | `""` | Deleyed replication, disabled if empty, set enable set time, f.e: 1h https://cloudnative-pg.io/documentation/current/replica_cluster/#delayed-replicas |
+| replica.topology | string | `""` | Choose one of topologies from `topologySettings`, https://cloudnative-pg.io/documentation/current/replica_cluster/ standalone: configure `recovery.method` to one of `objectStorage` or `pgBasebackup` and `recovery.methodSettings` accordingly distributed: configure `recovery.method` to `objectStorage` and `recovery.methodSettings` |
+| replica.topologySettings.distributed.primary | bool | `true` | Distributed topology requires to use objectStorage in both recovery and backups |
+| replica.topologySettings.distributed.promotionToken | string | `""` | Promoting a Replica to a Primary Cluster demotionToken obtrained from demoted primary should set to promotionToken on replica Use `kubectl get cluster cluster-eu-south -o jsonpath='{.status.demotionToken}'` https://cloudnative-pg.io/documentation/current/replica_cluster/#demoting-a-primary-to-a-replica-cluster https://cloudnative-pg.io/documentation/current/replica_cluster/#promoting-a-replica-to-a-primary-cluster |
+| replica.topologySettings.standalone | object | `{}` |  |
+| scheduledBackups | list | `[]` | Scheduled backups configuration. https://cloudnative-pg.io/documentation/current/backup/#scheduled-backups |
+| subscriptions | list | `[]` | Logical replication subscriptions to establish from this cluster to a remote publisher. https://cloudnative-pg.io/documentation/current/logical_replication/#subscriptions |
 | type | string | `"postgresql"` | Type of the CNPG database. Available types: * `postgresql` * `postgis` * `timescaledb` |
-| version.postgis | string | `"3.4"` | If using PostGIS, specify the version |
-| version.postgresql | string | `"16"` | PostgreSQL major version to use |
-| version.timescaledb | string | `"2.15"` | If using TimescaleDB, specify the version |
+| version.postgis | string | `"3.5"` | If using PostGIS, specify the version |
+| version.postgresql | string | `"17"` | PostgreSQL major version to use |
+| version.timescaledb | string | `"2.22"` | If using TimescaleDB, specify the version |
 | poolers[].name                                      | string                                       | ``                                               | Name of the pooler resource                                                                                                                                                                                                                                                                                                                                                                                                                |
 | poolers[].instances                                 | number                                       | `1`                                              | The number of replicas we want                                                                                                                                                                                                                                                                                                                                                                                                             |
 | poolers[].type                                      | [PoolerType][PoolerType]                     | `rw`                                             | Type of service to forward traffic to. Default: `rw`.                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -308,4 +312,3 @@ TODO
 ----
 * IAM Role for S3 Service Account
 * Automatic provisioning of a Alert Manager configuration
-

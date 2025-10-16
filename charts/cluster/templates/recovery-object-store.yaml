@@ -1,0 +1,16 @@
+{{- if and (eq (include "cluster.barman.integrationType" .) "plugin") (eq (include "cluster.recovery.method.objectStorage.enabled" .) "true") }}
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ include "cluster.objectStore.recovery.name" . }}
+  labels:
+    {{- include "cluster.labels" . | nindent 4 }}
+spec:
+  configuration:
+    {{- $d := dict "chartFullname" (include "cluster.fullname" .) "scope" .Values.recovery.methodSettings.objectStorage "secretPrefix" "recovery" "existingSecret" .Values.recovery.existingSecret }}
+    {{- include "cluster.barmanObjectStoreConfig" $d | indent 4 }}
+  {{- with .Values.recovery.methodSettings.objectStorage.instanceSidecarConfiguration }}
+  instanceSidecarConfiguration:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

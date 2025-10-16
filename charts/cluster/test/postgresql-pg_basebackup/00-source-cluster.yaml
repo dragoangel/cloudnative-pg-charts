@@ -1,8 +1,6 @@
 type: postgresql
-mode: "standalone"
+mode: standalone
 cluster:
   instances: 1
   storage:
     size: 256Mi
-backups:
-  enabled: false

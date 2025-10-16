@@ -1,19 +1,45 @@
-{{ if .Values.backups.enabled }}
-{{ $context := . -}}
-{{ range .Values.backups.scheduledBackups -}}
+{{- if (eq (include "cluster.backups.enabled" .) "true") }}
+{{- $root := . -}}
+{{- range .Values.scheduledBackups }}
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: {{ include "cluster.fullname" $context  }}-{{ .name }}
-  namespace: {{ include "cluster.namespace" $ }}
-  labels: {{ include "cluster.labels" $context | nindent 4 }}
+  name: {{ include "cluster.fullname" $  }}-{{ .name }}
+  labels: {{ include "cluster.labels" $ | nindent 4 }}
 spec:
-  immediate: true
-  schedule: {{ .schedule | quote }}
-  method: {{ .method }}
-  backupOwnerReference: {{ .backupOwnerReference }}
   cluster:
-    name: {{ include "cluster.fullname" $context }}
-{{ end -}}
-{{ end }}
+    name: {{ include "cluster.fullname" $ }}
+  schedule: {{ .schedule | default "0 0 0 * * *" | quote }}
+  immediate: {{ .immediate | default "true" }}
+  suspend: {{ .suspend | default "false" }}
+  {{- if not (empty .method) }}
+  method: {{ .method }}
+  {{- else if (eq (include "cluster.barman.integrationType" $root) "plugin") }}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: {{ include "cluster.objectStore.backup.name" $root }}
+  {{- else if (eq (include "cluster.barman.integrationType" $root) "buildin") }}
+  method: barmanObjectStore
+  {{- end }}
+  {{- if eq .method "plugin" }}
+  pluginConfiguration:
+    {{- .pluginConfiguration | toYaml | nindent 4 }}
+  {{- else if eq .method "volumeSnapshot" }}
+  {{- with .online }}
+  online: {{ . }}
+  {{- end }}
+  {{- with .onlineConfiguration }}
+  onlineConfiguration:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- with .target }}
+  target:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  backupOwnerReference: {{ .backupOwnerReference | default "self" }}
+{{- end }}
+{{- end }}

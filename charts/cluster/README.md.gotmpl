@@ -66,9 +66,10 @@ Cluster Configuration
 
 ### Database types
 
-Currently the chart supports two database types. These are configured via the `type` parameter. These are:
+Currently the chart supports the following database types via the `type` parameter:
 * `postgresql` - A standard PostgreSQL database.
 * `postgis` - A PostgreSQL database with the PostGIS extension installed.
+* `timescaledb` - PostgreSQL with TimescaleDB extension; you can use an ImageCatalog (recommended) or provide a custom `cluster.imageName`.
 
 Depending on the type the chart will use a different Docker image and fill in some initial setup, like extension installation.
 
@@ -83,10 +84,10 @@ The chart has three modes of operation. These are configured via the `mode` para
 
 CNPG implements disaster recovery via [Barman](https://pgbarman.org/). The following section configures the barman object
 store where backups will be stored. Barman performs backups of the cluster filesystem base backup and WALs. Both are
-stored in the specified location. The backup provider is configured via the `backups.provider` parameter. The following
-providers are supported:
+stored in the specified location. The backup provider is configured via the `backups.objectStorage.provider` parameter.
+The following providers are supported:
 
-* S3 or S3-compatible stores, like MinIO
+* S3 or S3-compatible stores, like MinIO or Ceph Rados
 * Microsoft Azure Blob Storage
 * Google Cloud Storage
 
@@ -102,14 +103,14 @@ backups:
 ```
 
 Each backup adapter takes it's own set of parameters, listed in the [Configuration options](#Configuration-options) section
-below. Refer to the table for the full list of parameters and place the configuration under the appropriate key: `backup.s3`,
-`backup.azure`, or `backup.google`.
+below. Refer to the table for the full list of parameters and place the configuration under the appropriate key:
+`backups.objectStorage.providerSettings.s3`, `backups.objectStorage.providerSettings.azure` or `backups.objectStorage.providerSettings.google`.
 
 
 Recovery
 --------
 
-There is a separate document outlining the recovery procedure here: **[Recovery](docs/Recovery.md)**
+There is a separate document outlining the recovery procedure here: **[Recovery](docs/recovery.md)**
 
 
 Examples

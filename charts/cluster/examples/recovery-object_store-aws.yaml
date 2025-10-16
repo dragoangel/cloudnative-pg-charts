@@ -1,0 +1,34 @@
+type: postgresql
+mode: recovery
+
+cluster:
+  instances: 1
+
+recovery:
+  method: objectStorage
+  methodSettings:
+    objectStorage:
+      clusterName: cluster-name-to-recover-from
+      provider: s3
+      s3:
+        region: eu-west-1
+        bucket: db-backups
+        path: /v1-restore
+        accessKey: "AWS_S3_ACCESS_KEY"
+        secretKey: "AWS_S3_SECRET_KEY"
+
+backups:
+  objectStorage:
+    provider: s3
+    providerSettings:
+      s3:
+        region: eu-west-1
+        bucket: db-backups
+        path: /v2-restore
+        accessKey: "AWS_S3_ACCESS_KEY"
+        secretKey: "AWS_S3_SECRET_KEY"
+  scheduledBackups:
+    - name: daily-backup # Daily at midnight
+      schedule: "0 0 0 * * *" # Daily at midnight
+      backupOwnerReference: self
+  retentionPolicy: 30d

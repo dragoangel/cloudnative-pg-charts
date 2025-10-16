@@ -5,8 +5,6 @@ version:
   timescaledb: "2.15"
 cluster:
   instances: 1
-backups:
-  enabled: false
 imageCatalog:
   create: true
   images:

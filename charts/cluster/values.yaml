@@ -14,171 +14,27 @@ type: postgresql
 
 version:
   # -- PostgreSQL major version to use
-  postgresql: "16"
+  postgresql: "17"
   # -- If using TimescaleDB, specify the version
-  timescaledb: "2.15"
+  timescaledb: "2.22"
   # -- If using PostGIS, specify the version
-  postgis: "3.4"
+  postgis: "3.5"
 
 ###
 # -- Cluster mode of operation. Available modes:
-# * `standalone` - default mode. Creates new or updates an existing CNPG cluster.
-# * `replica` - Creates a replica cluster from an existing CNPG cluster. # TODO
-# * `recovery` - Same as standalone but creates a cluster from a backup, object store or via pg_basebackup.
+# * `standalone` - default mode.
+# * `recovery` - creates a cluster from a backup (cnpg CR), objectStore, volumeSnapshot or pgBasebackup.
+# * `replica` - creates a replica cluster from objectStore or pgBasebackup. Requires to define recovery settings.
+# * `import` - creates a cluster by utilizing `pg_dump -Fc` via pgBasebackup connection, which allows to migrate even from very old versions of PostgreSQL. Requires to define recovery settings.
 mode: standalone
 
-recovery:
-  ##
-  # -- Available recovery methods:
-  # * `backup` - Recovers a CNPG cluster from a CNPG backup (PITR supported) Needs to be on the same cluster in the same namespace.
-  # * `object_store` - Recovers a CNPG cluster from a barman object store (PITR supported).
-  # * `pg_basebackup` - Recovers a CNPG cluster viaa streaming replication protocol. Useful if you want to
-  #        migrate databases to CloudNativePG, even from outside Kubernetes.
-  # * `import` - Import one or more databases from an existing Postgres cluster.
-  method: backup
-
-  ## -- Point in time recovery target. Specify one of the following:
-  pitrTarget:
-    # -- Time in RFC3339 format
-    time: ""
-
-  ##
-  # -- Backup Recovery Method
-  backupName: ""  # Name of the backup to recover from. Required if method is `backup`.
-
-  ##
-  # -- The original cluster name when used in backups. Also known as serverName.
-  clusterName: ""
-  # -- Name of the database used by the application. Default: `app`.
-  database: app
-  # -- Name of the owner of the database in the instance to be used by applications. Defaults to the value of the `database` key.
-  owner: ""
-  # -- Overrides the provider specific default endpoint. Defaults to:
-  # S3: https://s3.<region>.amazonaws.com"
-  # Leave empty if using the default S3 endpoint
-  endpointURL: ""
-  # -- Specifies a CA bundle to validate a privately signed certificate.
-  endpointCA:
-    # -- Creates a secret with the given value if true, otherwise uses an existing secret.
-    create: false
-    name: ""
-    key: ""
-    value: ""
-  # -- Overrides the provider specific default path. Defaults to:
-  # S3: s3://<bucket><path>
-  # Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path>
-  # Google: gs://<bucket><path>
-  destinationPath: ""
-  # -- One of `s3`, `azure` or `google`
-  provider: s3
-  s3:
-    region: ""
-    bucket: ""
-    path: "/"
-    accessKey: ""
-    secretKey: ""
-    # -- Use the role based authentication without providing explicitly the keys
-    inheritFromIAMRole: false
-  azure:
-    path: "/"
-    connectionString: ""
-    storageAccount: ""
-    storageKey: ""
-    storageSasToken: ""
-    containerName: ""
-    serviceName: blob
-    inheritFromAzureAD: false
-  google:
-    path: "/"
-    bucket: ""
-    gkeEnvironment: false
-    applicationCredentials: ""
-  secret:
-    # -- Whether to create a secret for the backup credentials
-    create: true
-    # -- Name of the backup credentials secret
-    name: ""
-
-  # See https://cloudnative-pg.io/documentation/current/bootstrap/#bootstrap-from-a-live-cluster-pg_basebackup
-  pgBaseBackup:
-    # -- Name of the database used by the application. Default: `app`.
-    database: app
-    # -- Name of the secret containing the initial credentials for the owner of the user database. If empty a new secret will be created from scratch
-    secret: ""
-    # -- Name of the owner of the database in the instance to be used by applications. Defaults to the value of the `database` key.
-    owner: ""
-    source:
-      host: ""
-      port: 5432
-      username: ""
-      database: "app"
-      sslMode: "verify-full"
-      passwordSecret:
-        # -- Whether to create a secret for the password
-        create: false
-        # -- Name of the secret containing the password
-        name: ""
-        # -- The key in the secret containing the password
-        key: "password"
-        # -- The password value to use when creating the secret
-        value: ""
-      sslKeySecret:
-        name: ""
-        key: ""
-      sslCertSecret:
-        name: ""
-        key: ""
-      sslRootCertSecret:
-        name: ""
-        key: ""
-
-  # See: https://cloudnative-pg.io/documentation/current/cloudnative-pg.v1/#postgresql-cnpg-io-v1-Import
-  import:
-    # -- One of `microservice` or `monolith.`
-    # See: https://cloudnative-pg.io/documentation/current/database_import/#how-it-works
-    type: "microservice"
-    # -- Databases to import
-    databases: []
-    # -- Roles to import
-    roles: []
-    # -- List of SQL queries to be executed as a superuser in the application database right after is imported.
-    # To be used with extreme care. Only available in microservice type.
-    postImportApplicationSQL: []
-    # -- When set to true, only the pre-data and post-data sections of pg_restore are invoked, avoiding data import.
-    schemaOnly: false
-    # -- List of custom options to pass to the `pg_dump` command. IMPORTANT: Use these options with caution and at your
-    # own risk, as the operator does not validate their content. Be aware that certain options may conflict with the
-    # operator's intended functionality or design.
-    pgDumpExtraOptions: []
-    # -- List of custom options to pass to the `pg_restore` command. IMPORTANT: Use these options with caution and at
-    # your own risk, as the operator does not validate their content. Be aware that certain options may conflict with the
-    # operator's intended functionality or design.
-    pgRestoreExtraOptions: []
-    source:
-      host: ""
-      port: 5432
-      username: ""
-      database: ""
-      sslMode: "verify-full"
-      passwordSecret:
-        # -- Whether to create a secret for the password
-        create: false
-        # -- Name of the secret containing the password
-        name: ""
-        # -- The key in the secret containing the password
-        key: "password"
-        # -- The password value to use when creating the secret
-        value: ""
-      sslKeySecret:
-        name: ""
-        key: ""
-      sslCertSecret:
-        name: ""
-        key: ""
-      sslRootCertSecret:
-        name: ""
-        key: ""
-
+barman:
+  # -- Force using a specific Barman integration type.
+  # When empty, chart will automatically:
+  # - use builtin barmanObjectStore (in Cluster spec) on Kubernetes < 1.29
+  # - use the Barman Cloud Plugin (ObjectStore CR) on Kubernetes >= 1.29
+  # Set to "buildin" or "plugin" to force a specific integration regardless of Kubernetes version.
+  forceUseOf: ""
 
 cluster:
   # -- Number of instances
@@ -290,6 +146,19 @@ cluster:
   # See: https://cloudnative-pg.io/documentation/current/kubernetes_upgrade/#pod-disruption-budgets
   enablePDB: true
 
+  # -- This feature automatically manages physical replication slots for each hot standby replica in
+  # the High Availability cluster, both in the primary and the standby.
+  # See: https://cloudnative-pg.io/documentation/current/replication/#replication-slots-for-high-availability
+  replicationSlots: {}
+    # highAvailability:
+    #   enabled: true
+    #   slotPrefix: _cnpg_
+    #   synchronizeLogicalDecoding: false
+    # synchronizeReplicas:
+    #   enabled: false
+    #   excludePatterns: []
+    # updateInterval: 30
+
   # -- This feature enables declarative management of existing roles, as well as the creation of new roles if they are not
   # already present in the database.
   # See: https://cloudnative-pg.io/documentation/current/declarative_role_management/
@@ -312,9 +181,19 @@ cluster:
       # --The list of relabelings for the PodMonitor.
       # Applied to samples before scraping.
       relabelings: []
+        # - targetLabel: environment
+        #   replacement: production
+        # - targetLabel: team
+        #   replacement: alpha
       # -- The list of metric relabelings for the PodMonitor.
       # Applied to samples before ingestion.
       metricRelabelings: []
+        # - action: replace
+        #   sourceLabels:
+        #     - cluster
+        #   targetLabel: cnpg_cluster
+        # - action: labeldrop
+        #   regex: cluster
     prometheusRule:
       # -- Whether to enable the PrometheusRule automated alerts
       enabled: true
@@ -327,17 +206,17 @@ cluster:
     # -- Custom Prometheus metrics
     # Will be stored in the ConfigMap
     customQueries: []
-    #  - name: "pg_cache_hit_ratio"
-    #    query: "SELECT current_database() as datname, sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as ratio FROM pg_statio_user_tables;"
-    #    target_databases: ["*"]
-    #    predicate_query: "SELECT '{{ .Values.version.postgresql }}';"
-    #    metrics:
-    #      - datname:
-    #          usage: "LABEL"
-    #          description: "Name of the database"
-    #      - ratio:
-    #          usage: GAUGE
-    #          description: "Cache hit ratio"
+      # - name: "pg_cache_hit_ratio"
+      #   query: "SELECT current_database() as datname, sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as ratio FROM pg_statio_user_tables;"
+      #   target_databases: ["*"]
+      #   predicate_query: "SELECT '{{ .Values.version.postgresql }}';"
+      #   metrics:
+      #     - datname:
+      #         usage: "LABEL"
+      #         description: "Name of the database"
+      #     - ratio:
+      #         usage: GAUGE
+      #         description: "Cache hit ratio"
     # -- The list of secrets containing the custom queries
     customQueriesSecret: []
     #  - name: custom-queries-secret
@@ -349,8 +228,8 @@ cluster:
       # max_connections: 300
     # -- Quorum-based Synchronous Replication
     synchronous: {}
-     # method: any
-     # number: 1
+      # method: any
+      # number: 1
     # -- PostgreSQL Host Based Authentication rules (lines to be appended to the pg_hba.conf file)
     pg_hba: []
       # - host all all 10.244.0.0/16 md5
@@ -371,7 +250,6 @@ cluster:
           # name: 'ldapBindPassword'
           # key: 'data'
         # searchAttribute: 'uid'
-
 
   # -- BootstrapInitDB is the configuration of the bootstrap process when initdb is used.
   # See: https://cloudnative-pg.io/documentation/current/bootstrap/
@@ -395,85 +273,389 @@ cluster:
   annotations: {}
 
 
+import:
+  # -- Choose one of types from `typeSettings`,
+  # https://cloudnative-pg.io/documentation/current/database_import/
+  # All types require: configure `recovery.method` to `pgBasebackup` and `recovery.methodSettings` accordingly
+  # Please be aware off https://cloudnative-pg.io/documentation/current/database_import/#import-optimizations
+  type: ""
+  typeSettings:
+    microservice:
+      # -- Database name to import
+      database: ""
+      # -- Configure database owner, defaults to the database name
+      owner: ""
+      # -- Secret containing the initial credentials for the owner of the user database. If empty a new secret will be created from scratch
+      ownerSecret: ""
+      # -- Execute defined SQL queries as a superuser in the application database after import, optional
+      postImportApplicationSQL: []
+      # - CREATE EXTENSION IF NOT EXISTS vector;
+    monolith:
+      # -- List of databases that is required by the imported. Wildcard allow to import all databases.
+      databases: []
+      # -- List of role that is required by the imported databases. Wildcard allow to import all roles.
+      # Notes:
+      # 1. postgres, streaming_replica & cnp_pooler_pgbouncer roles will not be imported from origin
+      # 2. the SUPERUSER option is removed from any imported role
+      roles: []
+
+
+replica:
+  # -- Choose one of topologies from `topologySettings`,
+  # https://cloudnative-pg.io/documentation/current/replica_cluster/
+  # standalone: configure `recovery.method` to one of `objectStorage` or `pgBasebackup` and `recovery.methodSettings` accordingly
+  # distributed: configure `recovery.method` to `objectStorage` and `recovery.methodSettings`
+  topology: ""
+  topologySettings:
+    standalone: {}
+    distributed:
+      # -- Distributed topology requires to use objectStorage in both recovery and backups
+      primary: true
+      # -- Promoting a Replica to a Primary Cluster
+      # demotionToken obtrained from demoted primary should set to promotionToken on replica
+      # Use `kubectl get cluster cluster-eu-south -o jsonpath='{.status.demotionToken}'`
+      # https://cloudnative-pg.io/documentation/current/replica_cluster/#demoting-a-primary-to-a-replica-cluster
+      # https://cloudnative-pg.io/documentation/current/replica_cluster/#promoting-a-replica-to-a-primary-cluster
+      promotionToken: ""
+  # -- Deleyed replication, disabled if empty, set enable set time, f.e: 1h
+  # https://cloudnative-pg.io/documentation/current/replica_cluster/#delayed-replicas
+  minApplyDelay: ""
+
+
+recovery:
+  # -- One of methods from `methodSettings`.
+  method: ""
+
+  pitrTarget:
+    # -- Point in time recovery target.
+    # Work with backup, objectStorage and volumeSnapshot methods.
+    # Time should be set in RFC3339 format.
+    time: ""
+
+  existingSecret:
+    # -- If the secret name is set, helm chart will create one which needed.
+    # Existing secret should contains all required veriables for chosen method or provider.
+    name: ""
+
+  methodSettings:
+    backup:
+      # -- Recovers a CNPG cluster from a backups.postgresql.cnpg.io custom resource (PITR supported).
+      # https://cloudnative-pg.io/documentation/current/recovery/#recovery-from-a-backup-object
+      # Needs to be on the same cluster in the same namespace.
+      # Name of the backup to recover from.
+      name: ""
+    objectStorage:
+      # -- Optional name for the generated ObjectStore used for recovery; defaults to "<fullname>-recovery-objectstore"
+      name: ""
+      # -- Recovers a CNPG cluster from a barman object store (PITR supported).
+      # https://cloudnative-pg.io/documentation/current/recovery/#recovery-from-an-object-store
+      # https://cloudnative-pg.io/documentation/current/replica_cluster/#example-of-standalone-replica-cluster-from-an-object-store
+      # The original cluster name when used in backups. Also known as serverName.
+      clusterName: ""
+      # -- Enables objectStorage provider. One of providers from `providerSettings`.
+      # https://cloudnative-pg.io/documentation/current/appendixes/object_stores/#appendix-a-common-object-stores-for-backups
+      provider: ""
+      providerSettings:
+        s3:
+          region: ""
+          bucket: ""
+          path: "/"
+          # -- Configures `ACCESS_KEY_ID` in secret
+          accessKey: ""
+          # -- Configures `ACCESS_SECRET_KEY` in secret
+          secretKey: ""
+          inheritFromIAMRole: false
+        azure:
+          path: "/"
+          # -- Configures `AZURE_CONNECTION_STRING` in secret
+          connectionString: ""
+          # -- Configures `AZURE_STORAGE_ACCOUNT` in secret
+          storageAccount: ""
+          # -- Configures `AZURE_STORAGE_KEY` in secret
+          storageKey: ""
+          # -- Configures `AZURE_STORAGE_SAS_TOKEN` in secret
+          storageSasToken: ""
+          containerName: ""
+          serviceName: blob
+          inheritFromAzureAD: false
+        google:
+          path: "/"
+          bucket: ""
+          gkeEnvironment: false
+          # -- Configures `APPLICATION_CREDENTIALS` in secret
+          applicationCredentials: ""
+      # -- Overrides the provider specific default endpoint. Defaults to:
+      # S3: https://s3.<region>.amazonaws.com"
+      # Leave empty if using the default S3 endpoint
+      endpointURL: ""
+      endpointCA:
+        # -- Specifies a CA bundle to validate a privately signed certificate.
+        # Creates a secret with the given value if true, otherwise uses an existing secret.
+        create: false
+        # -- Name of existing secret containing CA bundle.
+        name: ""
+        key: ca-bundle.crt
+        value: ""
+      # -- Overrides the provider specific default path. Defaults to:
+      # S3: s3://<bucket><path>
+      # Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path>
+      # Google: gs://<bucket><path>
+      destinationPath: ""
+      # -- Optional sidecar configuration for the ObjectStore instance pods
+      instanceSidecarConfiguration: {}
+        # additionalContainerArgs: []
+        # env:
+        #   - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        #     value: when_required
+        #   - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        #     value: when_required
+        # resources: {}
+      wal:
+        # -- Number of WAL files to be restored in parallel.
+        maxParallel: 1
+    volumeSnapshot:
+      # -- Recovers a CNPG cluster from a volume snapshot (PITR supported).
+      # https://cloudnative-pg.io/documentation/current/recovery/#recovery-from-volumesnapshot-objects
+      storageSnapshotName: ""
+      # -- WAL snapshot name, optional, need to be set if WAL stored on separate PVC.
+      walSnapshotName: ""
+    pgBasebackup:
+      # -- Recovers a CNPG cluster via streaming replication protocol.
+      # https://cloudnative-pg.io/documentation/current/bootstrap/#bootstrap-from-a-live-cluster-pg_basebackup
+      # https://cloudnative-pg.io/documentation/current/replica_cluster/#example-of-standalone-replica-cluster-using-pg_basebackup
+      connectionParameters:
+        host: ""
+        port: 5432
+        user: ""
+        # -- SSL mode to use while connecting to host.
+        # Possible secure options: `verify-full`, `verify-ca`, `require` and insecure: `prefer`, `allow`, `disable`.
+        # For more details please see: https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION
+        sslMode: verify-full
+        # -- Database on source server, optional.
+        # If `pgBasebackup.database` set and this setting is empty - will use same database name.
+        database: ""
+      # -- Configure one of supported auth types: `password` or `tls`
+      auth: password
+      authDetails:
+        # -- Configures `password` in secret
+        password: ""
+        tls:
+          # -- Configures `tls.key` in secret
+          key: ""
+          # -- Configures `tls.crt` in secret
+          crt: ""
+          # -- Configures `ca.crt` in secret
+          ca: ""
+      # -- Configure application database, optional and ignored with replica
+      # https://cloudnative-pg.io/documentation/current/bootstrap/#configure-the-application-database
+      database: ""
+      # -- Configure database owner, defaults to the database name
+      owner: ""
+      # -- Name of the secret containing the initial credentials for the owner of the user database.
+      # Secret must contains `username` key that match `owner` and `password` key.
+      # If empty - password will be generated randomly and saved to secret generated by Operator.
+      ownerSecret: ""
+
+
 backups:
-  # -- You need to configure backups manually, so backups are disabled by default.
-  enabled: false
-
-  # -- Overrides the provider specific default endpoint. Defaults to:
-  # S3: https://s3.<region>.amazonaws.com"
-  endpointURL: ""  # Leave empty if using the default S3 endpoint
-  # -- Specifies a CA bundle to validate a privately signed certificate.
-  endpointCA:
-    # -- Creates a secret with the given value if true, otherwise uses an existing secret.
-    create: false
+  existingSecret:
+    # -- If the secret name is set, helm chart will create one which needed.
+    # Existing secret should contains all required veriables for chosen provider.
     name: ""
-    key: ""
-    value: ""
-
-  # -- Overrides the provider specific default path. Defaults to:
-  # S3: s3://<bucket><path>
-  # Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path>
-  # Google: gs://<bucket><path>
-  destinationPath: ""
-  # -- One of `s3`, `azure` or `google`
-  provider: s3
-  s3:
-    region: ""
-    bucket: ""
-    path: "/"
-    accessKey: ""
-    secretKey: ""
-    # -- Use the role based authentication without providing explicitly the keys
-    inheritFromIAMRole: false
-  azure:
-    path: "/"
-    connectionString: ""
-    storageAccount: ""
-    storageKey: ""
-    storageSasToken: ""
-    containerName: ""
-    serviceName: blob
-    inheritFromAzureAD: false
-  google:
-    path: "/"
-    bucket: ""
-    gkeEnvironment: false
-    applicationCredentials: ""
-  secret:
-    # -- Whether to create a secret for the backup credentials
-    create: true
-    # -- Name of the backup credentials secret
+  objectStorage:
+    # -- Optional name for the generated ObjectStore used for backups; defaults to "<fullname>-backup-objectstore"
     name: ""
+    # -- Enable WAL archiver
+    walArchiverEnabled: false
+    # -- Retention policy for backups, duration format, f.e. 7d, 24h.
+    retentionPolicy: ""
+    # -- Enables objectStorage provider. One of providers from `providerSettings`, empty string - disables objectStorage backups.
+    # https://cloudnative-pg.io/documentation/current/appendixes/object_stores/#appendix-a-common-object-stores-for-backups
+    provider: ""
+    providerSettings:
+      s3:
+        region: ""
+        bucket: ""
+        path: "/"
+        # -- Configures `ACCESS_KEY_ID` in secret
+        accessKey: ""
+        # -- Configures `ACCESS_SECRET_KEY` in secret
+        secretKey: ""
+        inheritFromIAMRole: false
+      azure:
+        path: "/"
+        # -- Configures `AZURE_CONNECTION_STRING` in secret
+        connectionString: ""
+        # -- Configures `AZURE_STORAGE_ACCOUNT` in secret
+        storageAccount: ""
+        # -- Configures `AZURE_STORAGE_KEY` in secret
+        storageKey: ""
+        # -- Configures `AZURE_STORAGE_SAS_TOKEN` in secret
+        storageSasToken: ""
+        containerName: ""
+        serviceName: blob
+        inheritFromAzureAD: false
+      google:
+        path: "/"
+        bucket: ""
+        gkeEnvironment: false
+        # -- Configures `APPLICATION_CREDENTIALS` in secret
+        applicationCredentials: ""
+    # -- Overrides the provider specific default endpoint. Defaults to:
+    # S3: https://s3.<region>.amazonaws.com"
+    # Leave empty if using the default S3 endpoint
+    endpointURL: ""
+    endpointCA:
+      # -- Specifies a CA bundle to validate a privately signed certificate.
+      # Creates a secret with the given value if true, otherwise uses an existing secret.
+      create: false
+      # -- Name of existing secret containing CA bundle.
+      name: ""
+      key: ca-bundle.crt
+      value: ""
+    # -- Overrides the provider specific default path. Defaults to:
+    # S3: s3://<bucket><path>
+    # Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path>
+    # Google: gs://<bucket><path>
+    destinationPath: ""
+    wal:
+      # -- WAL compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`.
+      compression: gzip
+      # -- Whether to instruct the storage provider to encrypt WAL files. One of `` (use the storage container default), `AES256` or `aws:kms`.
+      encryption: ""
+      # -- Number of WAL files to be archived in parallel.
+      maxParallel: 1
+    data:
+      # -- Data compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`.
+      compression: gzip
+      # -- Whether to instruct the storage provider to encrypt data files. One of `` (use the storage container default), `AES256` or `aws:kms`.
+      encryption: ""
+      # -- Number of data files to be archived or restored in parallel.
+      jobs: 2
+    # -- Tags to be added to archived WAL files in cloud storage.
+    tags: {}
+      # backupRetentionPolicy: "expire"
+    # -- Tags to be added to archived history files in cloud storage.
+    historyTags: {}
+      # backupRetentionPolicy: "keep"
+    # -- Optional sidecar configuration for the ObjectStore instance pods
+    instanceSidecarConfiguration: {}
+      # additionalContainerArgs: []
+      # env:
+      #   - name: AWS_REQUEST_CHECKSUM_CALCULATION
+      #     value: when_required
+      #   - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+      #     value: when_required
+      # resources: {}
 
-  wal:
-    # -- WAL compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`.
-    compression: gzip
-    # -- Whether to instruct the storage provider to encrypt WAL files. One of `` (use the storage container default), `AES256` or `aws:kms`.
-    encryption: AES256
-    # -- Number of WAL files to be archived or restored in parallel.
-    maxParallel: 1
-  data:
-    # -- Data compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`.
-    compression: gzip
-    # -- Whether to instruct the storage provider to encrypt data files. One of `` (use the storage container default), `AES256` or `aws:kms`.
-    encryption: AES256
-    # -- Number of data files to be archived or restored in parallel.
-    jobs: 2
+  volumeSnapshot:
+    # -- Backup target configuration. One of `prefer-standby`, `primary`.
+    # https://cloudnative-pg.io/documentation/current/backup/#backup-from-a-standby
+    target: prefer-standby
+    # -- To enable volumeSnapshot configure className and add scheduledBackup with method `volumeSnapshot`
+    # https://cloudnative-pg.io/documentation/current/backup_volumesnapshot/#how-to-configure-volume-snapshot-backups
+    className: ""
+    # -- WAL snapshots class name, if empty - defaults to `className`
+    walClassName: ""
+    # -- Hot and cold backups
+    # https://cloudnative-pg.io/documentation/current/backup_volumesnapshot/#hot-and-cold-backups
+    online: true
+    onlineConfiguration:
+      immediateCheckpoint: true
+      waitForArchive: true
+    # -- Persistence of volume snapshot objects
+    # https://cloudnative-pg.io/documentation/current/backup_volumesnapshot/#persistence-of-volume-snapshot-objects
+    # One of `none`, `backup`, `cluster`,
+    snapshotOwnerReference: backup
 
-  scheduledBackups:
-    -
-      # -- Scheduled backup name
-      name: daily-backup
-      # -- Schedule in cron format
-      schedule: "0 0 0 * * *"
-      # -- Backup owner reference
-      backupOwnerReference: self
-      # -- Backup method, can be `barmanObjectStore` (default) or `volumeSnapshot`
-      method: barmanObjectStore
+# -- Scheduled backups configuration.
+# https://cloudnative-pg.io/documentation/current/backup/#scheduled-backups
+scheduledBackups: []
+  # -
+  #   # -- Scheduled backup name
+  #   name: daily-backup
+  #   # -- Schedule in cron format
+  #   schedule: "0 0 0 * * *"
+  #   # -- Backup owner reference
+  #   backupOwnerReference: self
+  #   # -- Backup method, can be `plugin` or `volumeSnapshot`
+  #   method: plugin
+  #   pluginConfiguration:
+  #     name: barman-cloud.cloudnative-pg.io
 
-  # -- Retention policy for backups
-  retentionPolicy: "30d"
+# -- List of external clusters definitions.
+# https://cloudnative-pg.io/documentation/current/replica_cluster/#defining-an-external-cluster
+externalClusters: []
 
+# -- Logical replication publications to create for this cluster.
+# https://cloudnative-pg.io/documentation/current/logical_replication/#publications
+publications: []
+  # - name: publisher
+  #   dbname: app
+  #   # Optional additional parameters
+  #   parameters:
+  #     publish: "insert,update,delete"
+
+# -- Logical replication subscriptions to establish from this cluster to a remote publisher.
+# https://cloudnative-pg.io/documentation/current/logical_replication/#subscriptions
+subscriptions: []
+  # - name: subscriber
+  #   publicationName: publisher
+  #   dbname: app
+  #   owner: app
+  #   externalClusterName: pgBasebackupRecoveryCluster
+  #   # Optional additional parameters
+  #   parameters:
+  #     enabled: "true"
+  #     copy_data: "true"
+  #     failover: "true"
+
+# -- Declarative PostgreSQL databases managed via Database CRs
+# https://cloudnative-pg.io/documentation/current/declarative_database_management/
+databases: []
+  # -
+  #   # -- Database name inside PostgreSQL
+  #   name: app2
+  #   # -- PostgreSQL role owning the database
+  #   owner: app
+  #   # -- Ensure state: present or absent (defaults to present)
+  #   ensure: present
+  #   # -- Template database (immutable)
+  #   template: template1
+  #   # -- Encoding (immutable)
+  #   encoding: UTF8
+  #   # -- Locale settings (immutable)
+  #   locale: ""
+  #   localeProvider: ""
+  #   localeCollate: ""
+  #   localeCType: ""
+  #   icuLocale: ""
+  #   icuRules: ""
+  #   builtinLocale: ""
+  #   # -- Whether this database can be used as a template for others
+  #   isTemplate: false
+  #   # -- Allow new connections
+  #   allowConnections: true
+  #   # -- Connection limit (-1 = no limit)
+  #   connectionLimit: -1
+  #   # -- Tablespace name (must exist)
+  #   tablespace: ""
+  #   # -- Reclaim policy when removed: one of "" (default), drop, retain
+  #   databaseReclaimPolicy: ""
+  #   # -- Managed schemas
+  #   schemas: []
+  #   #     - name: app
+  #   #       ensure: present
+  #   #       owner: app_owner
+  #   # -- Managed extensions
+  #   extensions: []
+  #   #     - name: vector
+  #   #       ensure: present
+  #   #       version: ""
+  #   #       schema: public
+
+# -- ImageCatalog definitions for referencing in cluster.imageCatalogRef
+# https://cloudnative-pg.io/documentation/current/image_catalog/
 imageCatalog:
   # -- Whether to provision an image catalog. If imageCatalog.images is empty this option will be ignored.
   create: true
@@ -483,6 +665,7 @@ imageCatalog:
     #   major: 16
 
 # -- List of PgBouncer poolers
+# https://cloudnative-pg.io/documentation/current/connection_pooling/
 poolers: []
   # -
   #   # -- Pooler name
@@ -501,8 +684,26 @@ poolers: []
   #     # -- Whether to enable monitoring
   #     enabled: false
   #     podMonitor:
-  #         # -- Whether to enable the PodMonitor
+  #       # -- Whether to enable the PodMonitor
   #       enabled: true
+  #       # --The list of relabelings for the PodMonitor.
+  #       # Applied to samples before scraping.
+  #       relabelings: []
+  #         # - targetLabel: type
+  #         #   replacement: rw
+  #         # - targetLabel: environment
+  #         #   replacement: production
+  #         # - targetLabel: team
+  #         #   replacement: alpha
+  #       # -- The list of metric relabelings for the PodMonitor.
+  #       # Applied to samples before ingestion.
+  #       metricRelabelings: []
+  #         # - action: replace
+  #         #   sourceLabels:
+  #         #     - cluster
+  #         #   targetLabel: cnpg_cluster
+  #         # - action: labeldrop
+  #         #   regex: cluster
   #   # -- Custom PgBouncer deployment template.
   #   # Use to override image, specify resources, etc.
   #   template: {}
@@ -525,6 +726,22 @@ poolers: []
   #     podMonitor:
   #         # -- Whether to enable the PodMonitor
   #       enabled: true
+  #       # -- podMonitor relabelings
+  #       relabelings: []
+  #         # - targetLabel: type
+  #         #   replacement: ro
+  #         # - targetLabel: environment
+  #         #   replacement: production
+  #         # - targetLabel: team
+  #         #   replacement: alpha
+  #       # -- podMonitor metricRelabelings
+  #       metricRelabelings: []
+  #         # - action: replace
+  #         #   sourceLabels:
+  #         #     - cluster
+  #         #   targetLabel: cnpg_cluster
+  #         # - action: labeldrop
+  #         #   regex: cluster
   #   # -- Custom PgBouncer deployment template.
   #   # Use to override image, specify resources, etc.
   #   template: {}

@@ -1,0 +1,8 @@
+{{- if and (eq (include "cluster.recovery.method.objectStorage.enabled" .) "true") (eq .Values.recovery.methodSettings.objectStorage.provider "google") (empty .Values.recovery.existingSecret.name) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ printf "%s-recovery-creds-google" (include "cluster.fullname" .) }}
+data:
+  APPLICATION_CREDENTIALS: {{ .Values.recovery.methodSettings.objectStorage.providerSettings.google.applicationCredentials | b64enc | quote }}
+{{- end }}
